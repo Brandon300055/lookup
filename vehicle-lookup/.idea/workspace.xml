@@ -10,11 +10,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugin.php">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="427">
-              <caret line="148" selection-start-line="148" selection-end-line="149" selection-end-column="64" />
+            <state relative-caret-position="340">
+              <caret line="133" column="106" selection-start-line="133" selection-start-column="106" selection-end-line="133" selection-end-column="106" />
               <folding>
                 <element signature="e#6#219#0#PHP" expanded="true" />
                 <element signature="e#2288#2465#0#PHP" />
@@ -32,6 +32,15 @@
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/js/search.js">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="300">
+              <caret line="20" column="5" selection-start-line="20" selection-start-column="5" selection-end-line="20" selection-end-column="5" />
+            </state>
+          </provider>
+        </entry>
+      </file>
     </leaf>
   </component>
   <component name="FindInProjectRecents">
@@ -44,10 +53,11 @@
       <list>
         <option value="$PROJECT_DIR$/vehicle.php" />
         <option value="$PROJECT_DIR$/plugin.php" />
+        <option value="$PROJECT_DIR$/js/search.js" />
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds">
+  <component name="ProjectFrameBounds" extendedState="1">
     <option name="x" value="120" />
     <option name="y" value="81" />
     <option name="width" value="1328" />
@@ -64,6 +74,11 @@
             <path>
               <item name="vehicle-lookup" type="b2602c69:ProjectViewProjectNode" />
               <item name="vehicle-lookup" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="vehicle-lookup" type="b2602c69:ProjectViewProjectNode" />
+              <item name="vehicle-lookup" type="462c0819:PsiDirectoryNode" />
+              <item name="js" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -102,18 +117,18 @@
       <option name="presentableId" value="Default" />
       <updated>1553890390437</updated>
       <workItem from="1553890393299" duration="622000" />
-      <workItem from="1554143619848" duration="14616000" />
+      <workItem from="1554143619848" duration="17639000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="15238000" />
+    <option name="totallyTimeSpent" value="18261000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="120" y="81" width="1328" height="793" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.23639192" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.23639192" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -147,8 +162,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/plugin.php">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="427">
-          <caret line="148" selection-start-line="148" selection-end-line="149" selection-end-column="64" />
+        <state relative-caret-position="340">
+          <caret line="133" column="106" selection-start-line="133" selection-start-column="106" selection-end-line="133" selection-end-column="106" />
           <folding>
             <element signature="e#6#219#0#PHP" expanded="true" />
             <element signature="e#2288#2465#0#PHP" />
@@ -162,6 +177,13 @@
             <element signature="n#style#0;n#input#0;n#!!top" expanded="true" />
             <element signature="n#style#0;n#b#0;n#!!top" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/js/search.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="300">
+          <caret line="20" column="5" selection-start-line="20" selection-start-column="5" selection-end-line="20" selection-end-column="5" />
         </state>
       </provider>
     </entry>

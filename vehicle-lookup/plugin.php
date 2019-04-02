@@ -117,6 +117,9 @@ class WP_Analytify_Simple{
 
       global $wpdb;
 
+      //reference search.js
+        wp_enqueue_script('search', plugin_dir_url(__FILE__).'js/'.'search.js');
+
       $table_name = $wpdb->prefix . 'vehicle';
 
       //get vehicles
@@ -124,30 +127,39 @@ class WP_Analytify_Simple{
 
       echo '<h2>Vehicle Lookup</h2>';
 
+
+      echo '<input type="text" id="vin" onkeyup="search(\'vin\', 1)" placeholder="Search for VIN">';
+      echo '<input type="text" id="year" onkeyup="search(\'year\', 2)" placeholder="Search for Year">';
+      echo '<input type="text" id="make" onkeyup="search(\'make\', 3)" placeholder="Search for Make">';
+      echo '<input type="text" id="model" onkeyup="search(\'model\', 4)" placeholder="Search for Model">';
+
   		echo
-      '<table class="widefat fixed" cellspacing="0">
+      '<table id="vehicle-table" class="widefat fixed" cellspacing="0">
       <thead><tr>
-      <th>Vin</th>
+      <th>Action</th>
+      <th>VIN</th>
       <th>Year</th>
       <th>Make</th>
       <th>Model</th>
       <th>Color</th>
-      <th>Odometer Last Serviced</th>
       <th>Last Serviced</th>
       </tr></thead><tbody>';
+//
+//        <th>Odometer Last Serviced</th>
+
 
       foreach ($vehicles as $vehicle) {
           $color = ( self::is_hex_color($vehicle->color)) ? "<div style='background-color: ".$vehicle->color."; width:100%; height:25px'></div>" : "Unknown" ;
 
         echo "<tr>";
-
+        echo "<td><form action='' type='POST'><a href=''>View</a></form>/<a href=''>Edit</a></td>";
         echo "<td>".$vehicle->vin."</td>";
         echo "<td>".$vehicle->year."</td>";
         echo "<td>".$vehicle->make."</td>";
         echo "<td>".$vehicle->model."</td>";
         echo "<td>".$color."</td>";
         echo "<td>".$vehicle->last_serviced."</td>";
-        echo "<td>".$vehicle->odometer_at_last_serviced."</td>";
+//        echo "<td>".$vehicle->odometer_at_last_serviced."</td>";
 
         echo "</tr>";
 
@@ -163,6 +175,11 @@ class WP_Analytify_Simple{
     function wpa_page_add_vehicle() {
         global $wpdb; //access wordpress instance
 
+        if ($_POST['edit']) {
+
+            echo "edit";
+
+        }
 
         // if the submit button is clicked
         if ( isset( $_POST['submitted'] ) ) {
@@ -291,14 +308,6 @@ class WP_Analytify_Simple{
 
         echo '<b style="color:darkred">*</b> required';
         echo '</form></tbody></table>';
-
-
-
-
-
-
-
-
 
 
     }
