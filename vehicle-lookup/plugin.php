@@ -41,10 +41,11 @@ function create_vehicle_db() {
 }
 
 
-
-
-
-
+/**
+ * Class WP_Analytify_Simple
+ *
+ * this class manages the plugin
+ */
 
 class WP_Analytify_Simple{
 
@@ -64,7 +65,7 @@ class WP_Analytify_Simple{
         add_menu_page( 'Vehicle Lookup', 'Vehicle Lookup', 'manage_options', 'vehicle-lookup-dashboard', array(
                           __CLASS__,
                          'wpa_page_vehicle_lookup_dashboard',
-                       ), plugins_url('images/icon-20.png', __FILE__));
+                       ), plugins_url('images/Icon-20.png', __FILE__));
 
 
         add_submenu_page( 'vehicle-lookup-dashboard', 'Vehicle Lookup' . 'Add Vehicle', 'Add Vehicle', 'manage_options', 'add-vehicle', array(
@@ -117,29 +118,42 @@ class WP_Analytify_Simple{
 
       global $wpdb;
 
+      //reference search.js
+        wp_enqueue_script('search', plugin_dir_url(__FILE__).'js/'.'search.js');
+
       $table_name = $wpdb->prefix . 'vehicle';
 
       //get vehicles
-      $vehicles = $wpdb->get_results('SELECT * FROM '.$table_name.' LIMIT 10');
+      $vehicles = $wpdb->get_results('SELECT * FROM '.$table_name);
 
       echo '<h2>Vehicle Lookup</h2>';
 
+
+      echo '<input type="text" id="vin" onkeyup="search(\'vin\', 1)" placeholder="Search for VIN">';
+      echo '<input type="text" id="year" onkeyup="search(\'year\', 2)" placeholder="Search for Year">';
+      echo '<input type="text" id="make" onkeyup="search(\'make\', 3)" placeholder="Search for Make">';
+      echo '<input type="text" id="model" onkeyup="search(\'model\', 4)" placeholder="Search for Model">';
+
   		echo
-      '<table class="widefat fixed" cellspacing="0">
+      '<table id="vehicle-table" class="widefat fixed" cellspacing="0">
       <thead><tr>
-      <th>Vin</th>
+      <th>Action</th>
+      <th>VIN</th>
       <th>Year</th>
       <th>Make</th>
       <th>Model</th>
       <th>Color</th>
-      <th>Odometer Last Serviced</th>
       <th>Last Serviced</th>
       </tr></thead><tbody>';
+//
+//        <th>Odometer Last Serviced</th>
+
 
       foreach ($vehicles as $vehicle) {
           $color = ( self::is_hex_color($vehicle->color)) ? "<div style='background-color: ".$vehicle->color."; width:100%; height:25px'></div>" : "Unknown" ;
 
-        echo "<tr>";
+        echo "<td><a href=".esc_url( admin_url('admin.php?page=add-vehicle&view=' . $vehicle->id ) ).">View</a> | ";
+        echo "<a href=".esc_url( admin_url('admin.php?page=add-vehicle&edit=' . $vehicle->id ) ).">Edit</a></td>";
 
         echo "<td>".$vehicle->vin."</td>";
         echo "<td>".$vehicle->year."</td>";
@@ -147,13 +161,30 @@ class WP_Analytify_Simple{
         echo "<td>".$vehicle->model."</td>";
         echo "<td>".$color."</td>";
         echo "<td>".$vehicle->last_serviced."</td>";
-        echo "<td>".$vehicle->odometer_at_last_serviced."</td>";
-
+//        echo "<td>".$vehicle->odometer_at_last_serviced."</td>";
         echo "</tr>";
 
       }
   		echo "</tbody></table>";
 
+    }
+
+
+    private function delete($deleted)
+    {
+        global $wpdb; //access wordpress instance
+
+        $table_name = $wpdb->prefix . 'vehicle';
+
+         $wpdb->delete(
+             $table_name,
+             ['id' => $deleted],
+             ['%d']
+         );
+
+        //redirect back to dashboard
+        echo 'This record is delete <a href="'.esc_url( admin_url('admin.php?page=vehicle-lookup-dashboard') ) .'">All Done Here </a> ';
+        die();
     }
 
 
@@ -163,11 +194,53 @@ class WP_Analytify_Simple{
     function wpa_page_add_vehicle() {
         global $wpdb; //access wordpress instance
 
+        //the table to be inserted into
+        $table_name = $wpdb->prefix . 'vehicle';
+
+        //format for the data
+        $format = array('%s','%d');
+
+        //get data on editing and viewing from the url using get method
+        $edit  = strip_tags(sanitize_text_field( $_GET["edit"] ));
+        $view = strip_tags(sanitize_text_field( $_GET["view"] ));
+        $deleted = strip_tags(sanitize_text_field( $_GET["deleted"] ));
+
+        //if adding (default)
+        $title = "Add";
+        $button = "Add Vehicle";
+        $disabled = '';
+        $cancelOrDone = "Cancel";
+
+        //if editing
+        if ($edit >= 1) {
+            $title = "Edit";
+            $button = "Edit Vehicle";
+            $ifViewOrEdit =  $edit;
+
+         //if viewing
+        } elseif ($view >= 1) {
+            $title = "View";
+            $button = "Done";
+            $ifViewOrEdit = $view;
+            $disabled = 'disabled';
+        }
+
+        //delete record and redirect
+        if ( is_numeric( $deleted ) ) {
+            self::delete($deleted);
+        }
 
         // if the submit button is clicked
         if ( isset( $_POST['submitted'] ) ) {
 
+
+            //go back to vehicle lookup
+            if ($view >= 1) {
+
+            }
+
             // sanitize data from POST method and strip tags
+            $id              = strip_tags(sanitize_text_field( $_GET["edit"] ));
             $vin             = strip_tags(sanitize_text_field( $_POST["vin"] ));
             $year            = strip_tags(sanitize_text_field( $_POST["year"] ));
             $make            = strip_tags(sanitize_text_field( $_POST["make"] ));
@@ -181,10 +254,6 @@ class WP_Analytify_Simple{
             if ( $vin && $year && $make && $model) {
                 //insert into db
 
-                //the table to be inserted into
-                $table_name = $wpdb->prefix . 'vehicle';
-
-                echo $table_name;
                 //construct the data
                 $data = array(
                     'vin'                       => $vin,
@@ -197,21 +266,28 @@ class WP_Analytify_Simple{
                     'memo'                      => $memo,
                 );
 
-                //format for the data
-                $format = array('%s','%d');
-
                 //do the insert
-                $wpdb->insert($table_name, $data, $format);
+                if ($edit >= 1) {
 
-                //add id
-                $wpdb->insert_id;
+                    $wpdb->update($table_name, $data, array('id' => $id));
+
+                    $cancelOrDone = "Done";
+
+                    echo '<div>';
+                    echo '<p><b style="color:#36D696">Nifty! You Just update a vehicle</b></p>';
+                    echo '</div>';
+
+                } else {
+                    $wpdb->insert($table_name, $data, $format);
+
+                    //add id
+                    $wpdb->insert_id;
 
 
-
-
-                echo '<div>';
-                echo '<p><b style="color:#36D696">Nifty! You Just added a '. $make .' ' . $model . ', would you like to add another?</b></p>';
-                echo '</div>';
+                    echo '<div>';
+                    echo '<p><b style="color:#36D696">Nifty! You Just added a '. $make .' ' . $model . ', would you like to add another?</b></p>';
+                    echo '</div>';
+                }
 
             } else {
 
@@ -223,79 +299,93 @@ class WP_Analytify_Simple{
             }
 
 
-
-
         }
 
 
-        //if editing
-
-
+        $table_name = $wpdb->prefix . 'vehicle';
+        $vehicle = $wpdb->get_results('SELECT * FROM '.$table_name.'  WHERE `id` = '.$ifViewOrEdit)[0];
+        $yearValue = ($edit >= 1) ? $vehicle->year : date("Y");
 
         //the form
 
-        echo '<h2>Add Vehicle</h2>';
-        echo '<table class="form-table"><tbody><form action="' . esc_url( admin_url('admin.php?page=add-vehicle') ) . '" method="post">';
+        //this form will be ether in view mode, edit mode, or add mode depending on the url
+
+        //title
+        echo '<h2>'.$title.' Vehicle</h2>';
+        echo '<table class="form-table"><tbody><form action="' . esc_url( admin_url(  ($edit >= 1 ) ? 'admin.php?page=add-vehicle&edit=' .$vehicle->id  : 'admin.php?page=add-vehicle'  ) ) . '" method="post">';
 
 
+        //action
+        echo '<tr><th scope="row">Action</th>';
+        echo '<td> <fieldset><legend class="screen-reader-text"><span>Action</span></legend><label for="submitted">';
+        if ($view >= 1) {
+            echo '<a href="' . esc_url( admin_url('admin.php?page=vehicle-lookup-dashboard') ) . ' ">'. $button . '</a>';
+        } else {
+            echo '<input type="submit" style="background-color:#36D696; color:#ffffff;" id="submitted" name="submitted" value="'.$button.'"/>';
+            echo '<a style="padding-left: 50px;" href="' . esc_url( admin_url('admin.php?page=vehicle-lookup-dashboard') ) . ' ">'.$cancelOrDone.'</a>';
+        }
+        echo '</fieldset></td></tr>';
+
+
+        //vin
         echo '<tr><th scope="row">VIN</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>VIN </span></legend><label for="vin">';
-        echo '<input name="vin" type="text" id="vin" value=""> <b style="color:darkred">*</b></label>';
+        echo ($view >= 1) ? $vehicle->vin : '<input name="vin" type="text" id="vin" value="'.$vehicle->vin.'"> <b style="color:darkred">*</b></label>';
         echo '</fieldset></td></tr>';
 
+        //year
         echo '<tr><th scope="row">Year</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>Year </span></legend><label for="year">';
-        echo '<input name="year" type="number" id="year" value="2020" min="1953" max="2039" required=""> <b style="color:darkred">*</b></label>';
+        echo ($view >= 1) ? $vehicle->year : '<input name="year" type="number" id="year" value="'. $yearValue .'" min="1953" max="2039" required=""> <b style="color:darkred">*</b></label>';
         echo '</fieldset></td></tr>';
 
-
+        //make
         echo '<tr><th scope="row">Make</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>Make </span></legend><label for="make">';
-        echo '<input name="make" type="text" id="make" value=""  required=""> <b style="color:darkred">*</b></label>';
+        echo ($view >= 1) ? $vehicle->make : '<input name="make" type="text" id="make" value="'.$vehicle->make.'"  required=""> <b style="color:darkred">*</b></label>';
         echo '</fieldset></td></tr>';
 
-
+        //model
         echo '<tr><th scope="row">Model</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>Model </span></legend><label for="model">';
-        echo '<input name="model" type="text" id="model" value=""  required=""> <b style="color:darkred">*</b></label>';
+        echo ($view >= 1) ? $vehicle->model : '<input name="model" type="text" id="model" value="'.$vehicle->model.'"  required=""> <b style="color:darkred">*</b></label>';
         echo '</fieldset></td></tr>';
 
-
+        //Color
         echo '<tr><th scope="row">Color</th>';
         echo '<td><fieldset><legend class="screen-reader-text"><span>Color </span></legend><label for="color">';
-        echo '<input name="color" type="color" id="color" value="">';
+        echo '<input name="color" type="color" id="color" value="'.$vehicle->color.'" '.$disabled.' >';
         echo '</fieldset></td></tr>';
 
-
+        //Odometer At Last Serviced
         echo '<tr><th scope="row">Odometer At Last Serviced</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>Odometer At Last Serviced </span></legend><label for="odometer_at_last_serviced">';
-        echo '<input name="odometer_at_last_serviced" type="number"  id="odometer_at_last_serviced" value=""></label>';
+        echo ($view >= 1) ? $vehicle->odometer_at_last_serviced : '<input name="odometer_at_last_serviced" type="number"  id="odometer_at_last_serviced" value="'.$vehicle->odometer_at_last_serviced.'"></label>';
         echo '</fieldset></td></tr>';
 
-
+        //Last Serviced
         echo '<tr><th scope="row">Last Serviced</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>Last Serviced </span></legend><label for="last_serviced">';
-        echo '<input name="last_serviced" type="date" id="last_serviced" value=""></label>';
+        echo ($view >= 1) ? $vehicle->last_serviced : '<input name="last_serviced" type="date" id="last_serviced" value="'.$vehicle->last_serviced.'"></label>';
         echo '</fieldset></td></tr>';
 
-
+        //memo
         echo '<tr><th scope="row">Memo</th>';
         echo '<td> <fieldset><legend class="screen-reader-text"><span>Memo </span></legend><label for="memo">';
-        echo '<textarea name="memo" style="width: 350px; height: 250px;" id="memo" value=""></textarea></label>';
+        echo '<textarea name="memo" style="width: 350px; height: 250px;" id="memo" '.$disabled.'>'.$vehicle->memo.'</textarea></label>';
         echo '</fieldset></td></tr>';
 
-        echo '<tr><th scope="row">Add Vehicle</th>';
-        echo '<td> <fieldset><legend class="screen-reader-text"><span>Add Vehicle </span></legend><label for="submitted">';
-        echo '<input type="submit" style="background-color:#36D696; color:#ffffff;" id="submitted" name="submitted" value="Add Vehicle"/>';
-        echo '</fieldset></td></tr>';
-
-        echo '<b style="color:darkred">*</b> required';
-        echo '</form></tbody></table>';
-
-
-
-
-
+        //delete record only in view mode
+        if ($view >= 1) {
+            echo '<tr><th scope="row">Delete Record</th>';
+            echo '<td> <fieldset><legend class="screen-reader-text"><span>Delete Record</span></legend><label for="delete">';
+            echo '<a style="color: darkred;" href="' . esc_url(admin_url('admin.php?page=add-vehicle&deleted='.$vehicle->id )) . ' ">Delete</a>';
+            echo '</fieldset></td></tr>';
+        } else {
+            //required label
+            echo '<b style="color:darkred">*</b> required';
+            echo '</form></tbody></table>';
+        }
 
 
 
