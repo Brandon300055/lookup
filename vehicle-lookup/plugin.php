@@ -65,7 +65,7 @@ class WP_Analytify_Simple{
         add_menu_page( 'Vehicle Lookup', 'Vehicle Lookup', 'manage_options', 'vehicle-lookup-dashboard', array(
                           __CLASS__,
                          'wpa_page_vehicle_lookup_dashboard',
-                       ), plugins_url('images/icon-20.png', __FILE__));
+                       ), plugins_url('images/Icon-20.png', __FILE__));
 
 
         add_submenu_page( 'vehicle-lookup-dashboard', 'Vehicle Lookup' . 'Add Vehicle', 'Add Vehicle', 'manage_options', 'add-vehicle', array(
@@ -170,6 +170,24 @@ class WP_Analytify_Simple{
     }
 
 
+    private function delete($deleted)
+    {
+        global $wpdb; //access wordpress instance
+
+        $table_name = $wpdb->prefix . 'vehicle';
+
+         $wpdb->delete(
+             $table_name,
+             ['id' => $deleted],
+             ['%d']
+         );
+
+        //redirect back to dashboard
+        echo 'This record is delete <a href="'.esc_url( admin_url('admin.php?page=vehicle-lookup-dashboard') ) .'">All Done Here </a> ';
+        die();
+    }
+
+
     /**
      * add a vehicle form
      */
@@ -208,22 +226,12 @@ class WP_Analytify_Simple{
         }
 
         //delete record and redirect
-        if ( isset( $deleted ) ) {
-            $wpdb->delete(
-                $table_name,
-                ['id' => $deleted],
-                ['%d']
-            );
-
-            //redirect back to dashboard
-            wp_redirect( esc_url( admin_url('admin.php?page=vehicle-lookup-dashboard') ) );
-
+        if ( is_numeric( $deleted ) ) {
+            self::delete($deleted);
         }
-
 
         // if the submit button is clicked
         if ( isset( $_POST['submitted'] ) ) {
-
 
 
             //go back to vehicle lookup
