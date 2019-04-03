@@ -9,73 +9,33 @@
  */
 
 
-//hooks for created the db's on install
-
-//vehicle db
-register_activation_hook( __FILE__, 'create_vehicle_db' );
-
-//services db
-register_activation_hook( __FILE__, 'create_services_db' );
-
-/**
- * creates the database for the vehicles on install
- */
-function create_vehicle_db() {
-
-    global $wpdb;
-    $charset_collate = $wpdb->get_charset_collate();
-    $table_name = $wpdb->prefix . 'vehicle';
-
-    $sql = "CREATE TABLE $table_name (
-      id mediumint(9) NOT NULL AUTO_INCREMENT,
-      vin text NOT NULL,
-      year text NOT NULL,
-   		make text NOT NULL,
-      model text  NOT NULL,
-      color text  NULL,
-      time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-  		UNIQUE KEY id (id)
- 	) $charset_collate;";
-
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $sql );
-}
 
 
 /**
- * creates the services table in the db
- */
-function create_services_db() {
-
-    global $wpdb;
-    $charset_collate = $wpdb->get_charset_collate();
-    $table_name = $wpdb->prefix . 'services';
-
-    $sql = "CREATE TABLE $table_name (
-      id mediumint(9) NOT NULL AUTO_INCREMENT,
-      vehicle_id mediumint(9) NOT NULL,
-      status text  NULL,
-      odometer_at_last_serviced int(20)  NULL,
-      last_serviced datetime DEFAULT '0000-00-00' NULL,
-      memo longtext  NULL,
-  		UNIQUE KEY id (id)
- 	) $charset_collate;";
-
-    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
-    dbDelta( $sql );
-}
-
-/**
- * Class WP_Analytify_Simple
+ * Class WP_Vehicle_Lookup
  *
  * this class manages the plugin
  */
 
-class WP_Analytify_Simple{
+class WP_Vehicle_Lookup{
 
-  // Constructor
+
+    // Constructor
+    /**
+     * WP_Vehicle_Lookup constructor.
+     */
     function __construct() {
 
+        //access wordpress db
+        global $wpdb;
+
+        //class wide variables for tables in the db
+        $wpdb->table_vehicle = $wpdb->prefix . 'vehicle_vl';
+        $wpdb->table_services = $wpdb->prefix . 'services_vl';
+//        $wpdb->table_services_list = $wpdb->prefix . 'services_list_vl';
+
+
+        //build the plugin
         add_action( 'admin_menu', array( $this, 'wpa_add_menu' ));
         register_activation_hook( __FILE__, array( $this, 'wpa_install' ) );
         register_deactivation_hook( __FILE__, array( $this, 'wpa_uninstall' ) );
@@ -87,9 +47,9 @@ class WP_Analytify_Simple{
     function wpa_add_menu() {
 
         add_menu_page( 'Vehicle Lookup', 'Vehicle Lookup', 'manage_options', 'vehicle-lookup-dashboard', array(
-                          __CLASS__,
-                         'wpa_page_vehicle_lookup_dashboard',
-                       ), plugins_url('images/Icon-20.png', __FILE__));
+            __CLASS__,
+            'wpa_page_vehicle_lookup_dashboard',
+        ), plugins_url('images/Icon-20.png', __FILE__));
 
 
         add_submenu_page( 'vehicle-lookup-dashboard', 'Vehicle Lookup' . 'Add Vehicle', 'Add Vehicle', 'manage_options', 'add-vehicle', array(
@@ -111,7 +71,7 @@ class WP_Analytify_Simple{
     /*
      * verify that color is a hex color
      */
-    function is_hex_color($hexColor)
+    private function is_hex_color($hexColor)
     {
         global $wpdb;
 
@@ -132,31 +92,69 @@ class WP_Analytify_Simple{
     }
 
 
+    /**
+     * this method generates the dropdown of all the services offered
+     */
+    private function services_dropdown()
+    {
+
+        //services list
+        //needs to be pulled from a db in a future update
+        $servicesList = array(
+            "Engine oil",
+            "Transmission",
+            "Front diff",
+            "Lube",
+            "Carb",
+            "Battery",
+            "Valve adjustment",
+            "Shocks",
+            "Radiator",
+            "Thermostat",
+            "Belt",
+            "Primary clutch",
+            "Secondary clutch",
+            "Brakes",
+            "Tires",
+            "Other",
+        );
+
+
+        echo "<td><select name='service'>";
+        //loop over all the serves in the list
+        foreach ($servicesList as $serviceItem) {
+            echo "<option value='".$serviceItem."'>".$serviceItem."</option>";
+        }
+
+        echo "</select></td>";
+
+    }
+
+
     /*
      * Actions perform on loading of menu pages
      */
     function wpa_page_vehicle_lookup_dashboard() {
 
-      global $wpdb;
+        global $wpdb;
 
-      //reference search.js
+        //reference search.js
         wp_enqueue_script('search', plugin_dir_url(__FILE__).'js/'.'search.js');
 
-      $table_name = $wpdb->prefix . 'vehicle';
+        //get vehicles
+        $vehicles = $wpdb->get_results('SELECT * FROM '.$wpdb->table_vehicle);
 
-      //get vehicles
-      $vehicles = $wpdb->get_results('SELECT * FROM '.$table_name);
+        echo '<h2>Vehicle Lookup</h2>';
 
-      echo '<h2>Vehicle Lookup</h2>';
+        //the search fields use functions found in search.js. works by setting all non machetes to display non
+        //search() function will take the id of the input and the column number of the table being searched.
+        echo '<input type="text" id="vin" onkeyup="search(\'vin\', 1)" placeholder="Search for VIN">';
+        echo '<input type="text" id="year" onkeyup="search(\'year\', 2)" placeholder="Search for Year">';
+        echo '<input type="text" id="make" onkeyup="search(\'make\', 3)" placeholder="Search for Make">';
+        echo '<input type="text" id="model" onkeyup="search(\'model\', 4)" placeholder="Search for Model">';
 
-
-      echo '<input type="text" id="vin" onkeyup="search(\'vin\', 1)" placeholder="Search for VIN">';
-      echo '<input type="text" id="year" onkeyup="search(\'year\', 2)" placeholder="Search for Year">';
-      echo '<input type="text" id="make" onkeyup="search(\'make\', 3)" placeholder="Search for Make">';
-      echo '<input type="text" id="model" onkeyup="search(\'model\', 4)" placeholder="Search for Model">';
-
-  		echo
-      '<table id="vehicle-table" class="widefat fixed" cellspacing="0">
+        echo
+        '<table id="vehicle-table" class="widefat fixed" cellspacing="0">
       <thead><tr>
       <th>Action</th>
       <th>VIN</th>
@@ -164,29 +162,24 @@ class WP_Analytify_Simple{
       <th>Make</th>
       <th>Model</th>
       <th>Color</th>
-      <th>Last Serviced</th>
       </tr></thead><tbody>';
-//
-//        <th>Odometer Last Serviced</th>
 
+        //create vehicle table
+        foreach ($vehicles as $vehicle) {
+            $color = ( self::is_hex_color($vehicle->color)) ? "<div style='background-color: ".$vehicle->color."; width:100%; height:25px'></div>" : "Unknown" ;
 
-      foreach ($vehicles as $vehicle) {
-          $color = ( self::is_hex_color($vehicle->color)) ? "<div style='background-color: ".$vehicle->color."; width:100%; height:25px'></div>" : "Unknown" ;
+            echo "<td><a href=".esc_url( admin_url('admin.php?page=add-vehicle&view=' . $vehicle->id ) ).">View</a> | ";
+            echo "<a href=".esc_url( admin_url('admin.php?page=add-vehicle&edit=' . $vehicle->id ) ).">Edit</a></td>";
 
-        echo "<td><a href=".esc_url( admin_url('admin.php?page=add-vehicle&view=' . $vehicle->id ) ).">View</a> | ";
-        echo "<a href=".esc_url( admin_url('admin.php?page=add-vehicle&edit=' . $vehicle->id ) ).">Edit</a></td>";
+            echo "<td>".$vehicle->vin."</td>";
+            echo "<td>".$vehicle->year."</td>";
+            echo "<td>".$vehicle->make."</td>";
+            echo "<td>".$vehicle->model."</td>";
+            echo "<td>".$color."</td>";
+            echo "</tr>";
 
-        echo "<td>".$vehicle->vin."</td>";
-        echo "<td>".$vehicle->year."</td>";
-        echo "<td>".$vehicle->make."</td>";
-        echo "<td>".$vehicle->model."</td>";
-        echo "<td>".$color."</td>";
-//        echo "<td>".$vehicle->last_serviced."</td>";
-//        echo "<td>".$vehicle->odometer_at_last_serviced."</td>";
-        echo "</tr>";
-
-      }
-  		echo "</tbody></table>";
+        }
+        echo "</tbody></table>";
 
     }
 
@@ -199,13 +192,12 @@ class WP_Analytify_Simple{
     {
         global $wpdb; //access wordpress instance
 
-        $table_name = $wpdb->prefix . 'vehicle';
-
-         $wpdb->delete(
-             $table_name,
-             ['id' => $deleted],
-             ['%d']
-         );
+        //preform the delete
+        $wpdb->delete(
+            $wpdb->table_vehicle,
+            ['id' => $deleted],
+            ['%d']
+        );
 
         //redirect back to dashboard
         echo 'This record is delete <a href="'.esc_url( admin_url('admin.php?page=vehicle-lookup-dashboard') ) .'">All Done Here </a> ';
@@ -221,10 +213,8 @@ class WP_Analytify_Simple{
     {
         global $wpdb;
 
-        $table_name = $wpdb->prefix . 'services';
-
         //get services by date and by vehicle id
-        $services = $wpdb->get_results('SELECT * FROM '.$table_name.' WHERE `vehicle_id` = '.$vehicleID.' ORDER BY last_serviced DESC;');
+        $services = $wpdb->get_results('SELECT * FROM '.$wpdb->table_services.' WHERE `vehicle_id` = '.$vehicleID.' ORDER BY last_serviced DESC;');
 
 
 //        echo $vehicleID;
@@ -233,26 +223,29 @@ class WP_Analytify_Simple{
         '<table id="vehicle-table" class="widefat fixed" cellspacing="0">
       <thead><tr>
       <th>Action</th>
+      <th>Service</th>
       <th>Last Serviced</th>
-      <th>Odometer At Last Serviced</th>
+      <th>Hours</th>
       <th>Memo</th>
       </tr></thead><tbody>';
 
-//        <th>Status</th>
-
+        //create form for a service
         echo "<tr><form action='". esc_url( admin_url("admin.php?page=add-vehicle&view=".$vehicleID) ) ."' method='POST'>";
         echo "<td><input type='submit' name='add-service' value='Add' style=\"background-color:#36D696; color:#ffffff;\"></td>";
-//        echo "<td><input type='text' name='status' value='' required=''></td>";
+
+        //have a dropdown list for services
+        self::services_dropdown();
+
         echo "<td><input type='date' name='last_serviced' value='' required=''></td>";
         echo "<td><input type='number' min='0' name='odometer_at_last_serviced' value='' required=''></td>";
         echo "<td><textarea name='memo' value=''></textarea></td>";
         echo "</form></tr>";
 
-
+        //loop over all the past services for this vehicle and create a table
         foreach ($services as $service) {
             echo "<tr>";
-            echo "<td></td>";
-//            echo "<td>".$service->status."</td>";
+            echo "<td><a>Edit</a> | <a style='color: darkred'>Drop</a></td>";
+            echo "<td>".$service->service."</td>";
             echo "<td>".$service->last_serviced."</td>";
             echo "<td>".$service->odometer_at_last_serviced."</td>";
             echo "<td>".$service->memo."</td>";
@@ -265,37 +258,37 @@ class WP_Analytify_Simple{
     }
 
 
-    protected function save_service($vehicle_id, $last_serviced, $odometer, $memo)
+    protected function save_service($vehicle_id, $last_serviced, $odometer, $memo, $service)
     {
         global $wpdb; //access wordpress instance
 
-        //the table to be inserted into
-        $table_name = $wpdb->prefix . 'services';
-
-        //format
-        $format = array('%s','%d');
-
         //check if required fields are there
-        if ($vehicle_id && $last_serviced && $odometer && $memo) {
-            //insert into db
+        if ($vehicle_id && $last_serviced && $odometer && $memo && $service) {
+
+            //format
+            $format = array('%s','%d');
 
             //construct the data
             $data = array(
                 'vehicle_id' => $vehicle_id,
-                'status' => '0',
+                'status' => '1',
+                'service' => $service,
                 'last_serviced'             => $last_serviced,
                 'odometer_at_last_serviced' => $odometer,
                 'memo'                      => $memo,
             );
 
+            //test the printed data
 //            print_r($data);
 
-            $wpdb->insert($table_name, $data, $format);
+            //insert into db
+            $wpdb->insert($wpdb->table_services, $data, $format);
 
             //add id
-//            $wpdb->insert_id;
+            $wpdb->insert_id;
 
 
+            //success message
             echo '<div>';
             echo '<p><b style="color:#36D696">Nifty! You Just added a service record</b></p>';
             echo '</div>';
@@ -313,20 +306,83 @@ class WP_Analytify_Simple{
     }
 
 
+    protected function add_edit_vehicle(array $POST, array $GET)
+    {
+        global $wpdb; //access wordpress instance
+
+        $format = array('%s','%d');
+
+        // if the submit button is clicked
+        if ( isset( $POST['submitted'] ) ) {
+
+            //go back to vehicle lookup
+
+            // sanitize data from POST method and strip tags
+            $id              = strip_tags(sanitize_text_field( $GET["edit"] ));
+            $vin             = strip_tags(sanitize_text_field( $POST["vin"] ));
+            $year            = strip_tags(sanitize_text_field( $POST["year"] ));
+            $make            = strip_tags(sanitize_text_field( $POST["make"] ));
+            $model           = strip_tags(sanitize_text_field( $POST["model"] ));
+            $color           = strip_tags(sanitize_text_field( $POST["color"] ));
+
+            //check if required fields are there
+            if ( $vin && $year && $make && $model) {
+                //insert into db
+
+                //construct the data
+                $data = array(
+                    'vin'                       => $vin,
+                    'year'                      => $year,
+                    'make'                      => $make,
+                    'model'                     => $model,
+                    'color'                     => $color,
+                );
+
+                //do the insert
+                if ($id >= 1) {
+
+                    $wpdb->update($wpdb->table_vehicle, $data, array('id' => $id));
+
+                    $cancelOrDone = "Done";
+
+                    echo '<div>';
+                    echo '<p><b style="color:#36D696">Nifty! You Just update a vehicle</b></p>';
+                    echo '</div>';
+
+                } else {
+                    $wpdb->insert($wpdb->table_vehicle, $data, $format);
+
+                    //add id
+                    $wpdb->insert_id;
+
+                    //success message
+                    echo '<div>';
+                    echo '<p><b style="color:#36D696">Nifty! You Just added a '. $make .' ' . $model . ', would you like to add another?</b></p>';
+                    echo '</div>';
+                }
+
+            } else {
+
+                //failure massage
+                echo '<div>';
+                echo '<p><b style="color:darkred">Oh On! Something went wrong?</b></p>';
+                echo '</div>';
+
+            }
+        }
+    }
+
+
+
     /**
      * add a vehicle form
      */
     function wpa_page_add_vehicle() {
         global $wpdb; //access wordpress instance
 
-        //the table to be inserted into
-        $table_name = $wpdb->prefix . 'vehicle';
-
         //reference delete.js
         wp_enqueue_script('delete', plugin_dir_url(__FILE__).'js/'.'delete.js');
 
-        //services table
-        $table_services = $wpdb->prefix . 'services';
 
         //format for the data
         $format = array('%s','%d');
@@ -348,7 +404,7 @@ class WP_Analytify_Simple{
             $button = "Edit Vehicle";
             $ifViewOrEdit =  $edit;
 
-         //if viewing
+            //if viewing
         } elseif ($view >= 1) {
             $title = "View";
             $button = "Done";
@@ -367,93 +423,19 @@ class WP_Analytify_Simple{
         if ($view >= 1) {
 
             $id              = strip_tags(sanitize_text_field( $_GET["view"] ));
-            $status             = strip_tags(sanitize_text_field( $_POST["status"] ));
+            $service             = strip_tags(sanitize_text_field( $_POST["service"] ));
             $last_serviced             = strip_tags(sanitize_text_field( $_POST["last_serviced"] ));
             $odometer             = strip_tags(sanitize_text_field( $_POST["odometer_at_last_serviced"] ));
             $memo             = strip_tags(sanitize_text_field( $_POST["memo"] ));
 
-//            test echo
-//            echo $id .'</br>';
-//            echo $status .'</br>';
-//            echo $last_serviced .'</br>';
-//            echo $odometer .'</br>';
-//            echo $memo .'</br>';
 
             //save services
-            self::save_service($id, $last_serviced, $odometer, $memo);
+            self::save_service($id, $last_serviced, $odometer, $memo, $service);
         }
 
+        self::add_edit_vehicle($_POST, $_GET);
 
-
-        // if the submit button is clicked
-        if ( isset( $_POST['submitted'] ) ) {
-
-            //go back to vehicle lookup
-
-
-            // sanitize data from POST method and strip tags
-            $id              = strip_tags(sanitize_text_field( $_GET["edit"] ));
-            $vin             = strip_tags(sanitize_text_field( $_POST["vin"] ));
-            $year            = strip_tags(sanitize_text_field( $_POST["year"] ));
-            $make            = strip_tags(sanitize_text_field( $_POST["make"] ));
-            $model           = strip_tags(sanitize_text_field( $_POST["model"] ));
-            $color           = strip_tags(sanitize_text_field( $_POST["color"] ));
-
-
-
-            //check if required fields are there
-            if ( $vin && $year && $make && $model) {
-                //insert into db
-
-                //construct the data
-                $data = array(
-                    'vin'                       => $vin,
-                    'year'                      => $year,
-                    'make'                      => $make,
-                    'model'                     => $model,
-                    'color'                     => $color,
-//                    'odometer_at_last_serviced' => $odometer,
-//                    'last_serviced'             => $lastServiced,
-//                    'memo'                      => $memo,
-                );
-
-                //do the insert
-                if ($edit >= 1) {
-
-                    $wpdb->update($table_name, $data, array('id' => $id));
-
-                    $cancelOrDone = "Done";
-
-                    echo '<div>';
-                    echo '<p><b style="color:#36D696">Nifty! You Just update a vehicle</b></p>';
-                    echo '</div>';
-
-                } else {
-                    $wpdb->insert($table_name, $data, $format);
-
-                    //add id
-                    $wpdb->insert_id;
-
-
-                    echo '<div>';
-                    echo '<p><b style="color:#36D696">Nifty! You Just added a '. $make .' ' . $model . ', would you like to add another?</b></p>';
-                    echo '</div>';
-                }
-
-            } else {
-
-                echo '<div>';
-                echo '<p><b style="color:darkred">Oh On! Something went wrong?</b></p>';
-                echo '</div>';
-
-            }
-
-
-        }
-
-
-        $table_name = $wpdb->prefix . 'vehicle';
-        $vehicle = $wpdb->get_results('SELECT * FROM '.$table_name.'  WHERE `id` = '.$ifViewOrEdit)[0];
+        $vehicle = $wpdb->get_results('SELECT * FROM '.$wpdb->table_vehicle.'  WHERE `id` = '.$ifViewOrEdit)[0];
         $yearValue = ($edit >= 1) ? $vehicle->year : date("Y");
 
         //the form
@@ -507,24 +489,6 @@ class WP_Analytify_Simple{
         echo '<input name="color" type="color" id="color" value="'.$vehicle->color.'" '.$disabled.' >';
         echo '</fieldset></td></tr>';
 
-//        //Odometer At Last Serviced
-//        echo '<tr><th scope="row">Odometer At Last Serviced</th>';
-//        echo '<td> <fieldset><legend class="screen-reader-text"><span>Odometer At Last Serviced </span></legend><label for="odometer_at_last_serviced">';
-//        echo ($view >= 1) ? $vehicle->odometer_at_last_serviced : '<input name="odometer_at_last_serviced" type="number"  id="odometer_at_last_serviced" value="'.$vehicle->odometer_at_last_serviced.'"></label>';
-//        echo '</fieldset></td></tr>';
-//
-//        //Last Serviced
-//        echo '<tr><th scope="row">Last Serviced</th>';
-//        echo '<td> <fieldset><legend class="screen-reader-text"><span>Last Serviced </span></legend><label for="last_serviced">';
-//        echo ($view >= 1) ? $vehicle->last_serviced : '<input name="last_serviced" type="date" id="last_serviced" value="'.$vehicle->last_serviced.'"></label>';
-//        echo '</fieldset></td></tr>';
-//
-//        //memo
-//        echo '<tr><th scope="row">Memo</th>';
-//        echo '<td> <fieldset><legend class="screen-reader-text"><span>Memo </span></legend><label for="memo">';
-//        echo '<textarea name="memo" style="width: 350px; height: 250px;" id="memo" '.$disabled.'>'.$vehicle->memo.'</textarea></label>';
-//        echo '</fieldset></td></tr>';
-
         //delete record only in view mode
         if ($view >= 1) {
             echo '<tr><th scope="row">Delete Record</th>';
@@ -559,11 +523,7 @@ class WP_Analytify_Simple{
             self::services($vehicle->id);
         }
 
-
-
     }
-
-
 
 
     function wpa_page_vehicle_added() {
@@ -571,15 +531,92 @@ class WP_Analytify_Simple{
     }
 
 
+    /**
+     * creates the database for the vehicles on install
+     */
+    private function create_vehicle_db() {
+
+        global $wpdb;
+        $charset_collate = $wpdb->get_charset_collate();
+
+        $sql = "CREATE TABLE $wpdb->table_vehicle (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        vin text NOT NULL,
+        year text NOT NULL,
+   		make text NOT NULL,
+        model text  NOT NULL,
+        color text  NULL,
+        time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+  		UNIQUE KEY id (id)
+ 	) $charset_collate;";
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+    }
 
 
+    /**
+     * creates the services table in the db
+     */
+    private function create_services_db() {
 
+        global $wpdb;
+        $charset_collate = $wpdb->get_charset_collate();
+        $sql = "CREATE TABLE $wpdb->table_services (
+        id mediumint(9) NOT NULL AUTO_INCREMENT,
+        vehicle_id mediumint(9) NOT NULL,
+        status text NULL,
+        service text NOT NULL,
+        odometer_at_last_serviced int(20)  NULL,
+        last_serviced datetime DEFAULT '0000-00-00' NULL,
+        memo longtext  NULL,
+        time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+  		UNIQUE KEY id (id)
+ 	) $charset_collate;";
+
+        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+        dbDelta( $sql );
+    }
+
+
+//    /**
+//     * creates the services table in the db
+//     */
+//    private function create_services_list_db() {
+//
+//        global $wpdb;
+//        $charset_collate = $wpdb->get_charset_collate();
+//        $sql = "CREATE TABLE $wpdb->services_list (
+//        id mediumint(9) NOT NULL AUTO_INCREMENT,
+//        text longtext  NULL,
+//        time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+//  		UNIQUE KEY id (id)
+// 	) $charset_collate;";
+//
+//        require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+//        dbDelta( $sql );
+//    }
+
+    private function delete_db_tables()
+    {
+
+    }
 
     /*
      * Actions perform on activation of plugin
      */
     function wpa_install() {
 
+        //create vehicle db
+        self::create_vehicle_db();
+
+        //create services db
+        self::create_services_db();
+
+        //create services list db
+//        self::create_services_list_db();
+
+        //seed services list db
 
 
     }
@@ -589,10 +626,10 @@ class WP_Analytify_Simple{
      */
     function wpa_uninstall() {
 
-
-
+        //delete tables
+//        self::delete_db_tables();
     }
 
 }
 
-new WP_Analytify_Simple();
+new WP_Vehicle_Lookup();

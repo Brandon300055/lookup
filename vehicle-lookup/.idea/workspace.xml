@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="393a164c-03fb-461a-8c27-019d7a6f2527" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/js/delete.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugin.php" beforeDir="false" afterPath="$PROJECT_DIR$/plugin.php" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -17,11 +15,12 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/plugin.php">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="303">
-              <caret line="538" column="17" lean-forward="true" selection-start-line="538" selection-start-column="17" selection-end-line="538" selection-end-column="17" />
+            <state relative-caret-position="526">
+              <caret line="282" lean-forward="true" selection-start-line="282" selection-end-line="282" />
               <folding>
-                <element signature="e#6#219#0#PHP" expanded="true" />
+                <element signature="e#6#212#0#PHP" expanded="true" />
                 <element signature="n#style#0;n#input#0;n#td#0;n#!!top" expanded="true" />
+                <element signature="n#style#0;n#a#1;n#td#0;n#!!top" expanded="true" />
                 <element signature="n#style#0;n#b#0;n#p#0;n#!!top" expanded="true" />
                 <element signature="n#style#0;n#b#0;n#p#0;n#!!top" expanded="true" />
                 <element signature="n#style#0;n#b#0;n#p#0;n#!!top" expanded="true" />
@@ -58,10 +57,20 @@
       <find>add-vehicle</find>
       <find>services</find>
       <find>icle&amp;view</find>
-      <find>status</find>
       <find>save_service</find>
       <find>delete</find>
       <find>delete-</find>
+      <find>WP_Analytify_Simple</find>
+      <find>table_vehicle</find>
+      <find>table_</find>
+      <find>select</find>
+      <find>services_dropdown</find>
+      <find>&gt;services</find>
+      <find>&gt;service</find>
+      <find>service</find>
+      <find>status</find>
+      <find>save</find>
+      <find>0</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -143,7 +152,7 @@
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="44961000" />
+    <option name="totallyTimeSpent" value="53112000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="154" y="125" width="1240" height="737" extended-state="0" />
@@ -202,11 +211,12 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/plugin.php">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="303">
-          <caret line="538" column="17" lean-forward="true" selection-start-line="538" selection-start-column="17" selection-end-line="538" selection-end-column="17" />
+        <state relative-caret-position="526">
+          <caret line="282" lean-forward="true" selection-start-line="282" selection-end-line="282" />
           <folding>
-            <element signature="e#6#219#0#PHP" expanded="true" />
+            <element signature="e#6#212#0#PHP" expanded="true" />
             <element signature="n#style#0;n#input#0;n#td#0;n#!!top" expanded="true" />
+            <element signature="n#style#0;n#a#1;n#td#0;n#!!top" expanded="true" />
             <element signature="n#style#0;n#b#0;n#p#0;n#!!top" expanded="true" />
             <element signature="n#style#0;n#b#0;n#p#0;n#!!top" expanded="true" />
             <element signature="n#style#0;n#b#0;n#p#0;n#!!top" expanded="true" />
