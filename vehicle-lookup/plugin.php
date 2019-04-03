@@ -2,16 +2,20 @@
 /**
  * Plugin Name: Vehicle Lookup
  * Plugin URI: https://suwdesign.com
- * Description: Looks vehicles up by there vin number.
+ * Description: Looks vehicles up by there VIN.
  * Version: 1.0
  * Author: Brandon Stewart
  * Author URI: http://brandonsreusme.ml
  */
 
 
-//hook for created the db
+//hooks for created the db's on install
+
+//vehicle db
 register_activation_hook( __FILE__, 'create_vehicle_db' );
 
+//services db
+register_activation_hook( __FILE__, 'create_services_db' );
 
 /**
  * creates the database for the vehicles on install
@@ -24,14 +28,11 @@ function create_vehicle_db() {
 
     $sql = "CREATE TABLE $table_name (
       id mediumint(9) NOT NULL AUTO_INCREMENT,
-      vin text NULL,
-      year text NULL,
-   		make text NULL,
-      model text  NULL,
+      vin text NOT NULL,
+      year text NOT NULL,
+   		make text NOT NULL,
+      model text  NOT NULL,
       color text  NULL,
-      odometer_at_last_serviced int(20)  NULL,
-      last_serviced datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-      memo longtext  NULL,
       time datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
   		UNIQUE KEY id (id)
  	) $charset_collate;";
@@ -40,6 +41,29 @@ function create_vehicle_db() {
     dbDelta( $sql );
 }
 
+
+/**
+ * creates the services table in the db
+ */
+function create_services_db() {
+
+    global $wpdb;
+    $charset_collate = $wpdb->get_charset_collate();
+    $table_name = $wpdb->prefix . 'services';
+
+    $sql = "CREATE TABLE $table_name (
+      id mediumint(9) NOT NULL AUTO_INCREMENT,
+      vehicle_id mediumint(9) NOT NULL,
+      status text  NULL,
+      odometer_at_last_serviced int(20)  NULL,
+      last_serviced datetime DEFAULT '0000-00-00' NULL,
+      memo longtext  NULL,
+  		UNIQUE KEY id (id)
+ 	) $charset_collate;";
+
+    require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+    dbDelta( $sql );
+}
 
 /**
  * Class WP_Analytify_Simple
@@ -79,10 +103,7 @@ class WP_Analytify_Simple{
             )
         );
 
-
-
 //        add_shortcode( "vehicle-added", "wpa_page_vehicle_added" );
-
 
 
     }
@@ -160,7 +181,7 @@ class WP_Analytify_Simple{
         echo "<td>".$vehicle->make."</td>";
         echo "<td>".$vehicle->model."</td>";
         echo "<td>".$color."</td>";
-        echo "<td>".$vehicle->last_serviced."</td>";
+//        echo "<td>".$vehicle->last_serviced."</td>";
 //        echo "<td>".$vehicle->odometer_at_last_serviced."</td>";
         echo "</tr>";
 
@@ -169,7 +190,11 @@ class WP_Analytify_Simple{
 
     }
 
-
+    /**
+     * @param $deleted
+     *
+     * deletes vehicle by id
+     */
     private function delete($deleted)
     {
         global $wpdb; //access wordpress instance
@@ -187,6 +212,106 @@ class WP_Analytify_Simple{
         die();
     }
 
+    /**
+     * @param $vehicleID
+     *
+     *display chart for vehicle services
+     */
+    private function services($vehicleID)
+    {
+        global $wpdb;
+
+        $table_name = $wpdb->prefix . 'services';
+
+        //get services by date and by vehicle id
+        $services = $wpdb->get_results('SELECT * FROM '.$table_name.' WHERE `vehicle_id` = '.$vehicleID.' ORDER BY last_serviced DESC;');
+
+
+//        echo $vehicleID;
+
+        echo
+        '<table id="vehicle-table" class="widefat fixed" cellspacing="0">
+      <thead><tr>
+      <th>Action</th>
+      <th>Last Serviced</th>
+      <th>Odometer At Last Serviced</th>
+      <th>Memo</th>
+      </tr></thead><tbody>';
+
+//        <th>Status</th>
+
+        echo "<tr><form action='". esc_url( admin_url("admin.php?page=add-vehicle&view=".$vehicleID) ) ."' method='POST'>";
+        echo "<td><input type='submit' name='add-service' value='Add' style=\"background-color:#36D696; color:#ffffff;\"></td>";
+//        echo "<td><input type='text' name='status' value='' required=''></td>";
+        echo "<td><input type='date' name='last_serviced' value='' required=''></td>";
+        echo "<td><input type='number' min='0' name='odometer_at_last_serviced' value='' required=''></td>";
+        echo "<td><textarea name='memo' value=''></textarea></td>";
+        echo "</form></tr>";
+
+
+        foreach ($services as $service) {
+            echo "<tr>";
+            echo "<td></td>";
+//            echo "<td>".$service->status."</td>";
+            echo "<td>".$service->last_serviced."</td>";
+            echo "<td>".$service->odometer_at_last_serviced."</td>";
+            echo "<td>".$service->memo."</td>";
+            echo "</tr>";
+
+        }
+
+        echo "</tbody></table>";
+
+    }
+
+
+    protected function save_service($vehicle_id, $last_serviced, $odometer, $memo)
+    {
+        global $wpdb; //access wordpress instance
+
+        //the table to be inserted into
+        $table_name = $wpdb->prefix . 'services';
+
+        //format
+        $format = array('%s','%d');
+
+        //check if required fields are there
+        if ($vehicle_id && $last_serviced && $odometer && $memo) {
+            //insert into db
+
+            //construct the data
+            $data = array(
+                'vehicle_id' => $vehicle_id,
+                'status' => '0',
+                'last_serviced'             => $last_serviced,
+                'odometer_at_last_serviced' => $odometer,
+                'memo'                      => $memo,
+            );
+
+//            print_r($data);
+
+            $wpdb->insert($table_name, $data, $format);
+
+            //add id
+//            $wpdb->insert_id;
+
+
+            echo '<div>';
+            echo '<p><b style="color:#36D696">Nifty! You Just added a service record</b></p>';
+            echo '</div>';
+
+
+        } else {
+
+//            echo '<div>';
+//            echo '<p><b style="color:darkred">Oh On! Something went wrong?</b></p>';
+//            echo '</div>';
+
+        }
+
+
+    }
+
 
     /**
      * add a vehicle form
@@ -196,6 +321,9 @@ class WP_Analytify_Simple{
 
         //the table to be inserted into
         $table_name = $wpdb->prefix . 'vehicle';
+
+        //services table
+        $table_services = $wpdb->prefix . 'services';
 
         //format for the data
         $format = array('%s','%d');
@@ -223,6 +351,7 @@ class WP_Analytify_Simple{
             $button = "Done";
             $ifViewOrEdit = $view;
             $disabled = 'disabled';
+
         }
 
         //delete record and redirect
@@ -230,14 +359,34 @@ class WP_Analytify_Simple{
             self::delete($deleted);
         }
 
+
+        //save service
+        if ($view >= 1) {
+
+            $id              = strip_tags(sanitize_text_field( $_GET["view"] ));
+            $status             = strip_tags(sanitize_text_field( $_POST["status"] ));
+            $last_serviced             = strip_tags(sanitize_text_field( $_POST["last_serviced"] ));
+            $odometer             = strip_tags(sanitize_text_field( $_POST["odometer_at_last_serviced"] ));
+            $memo             = strip_tags(sanitize_text_field( $_POST["memo"] ));
+
+//            test echo
+//            echo $id .'</br>';
+//            echo $status .'</br>';
+//            echo $last_serviced .'</br>';
+//            echo $odometer .'</br>';
+//            echo $memo .'</br>';
+
+            //save services
+            self::save_service($id, $last_serviced, $odometer, $memo);
+        }
+
+
+
         // if the submit button is clicked
         if ( isset( $_POST['submitted'] ) ) {
 
-
             //go back to vehicle lookup
-            if ($view >= 1) {
 
-            }
 
             // sanitize data from POST method and strip tags
             $id              = strip_tags(sanitize_text_field( $_GET["edit"] ));
@@ -246,9 +395,8 @@ class WP_Analytify_Simple{
             $make            = strip_tags(sanitize_text_field( $_POST["make"] ));
             $model           = strip_tags(sanitize_text_field( $_POST["model"] ));
             $color           = strip_tags(sanitize_text_field( $_POST["color"] ));
-            $odometer        = strip_tags(sanitize_text_field( $_POST["odometer_at_last_serviced"] ));
-            $lastServiced    = strip_tags(sanitize_text_field( $_POST["last_serviced"] ));
-            $memo            = strip_tags(sanitize_text_field( $_POST["memo"] ));
+
+
 
             //check if required fields are there
             if ( $vin && $year && $make && $model) {
@@ -261,9 +409,9 @@ class WP_Analytify_Simple{
                     'make'                      => $make,
                     'model'                     => $model,
                     'color'                     => $color,
-                    'odometer_at_last_serviced' => $odometer,
-                    'last_serviced'             => $lastServiced,
-                    'memo'                      => $memo,
+//                    'odometer_at_last_serviced' => $odometer,
+//                    'last_serviced'             => $lastServiced,
+//                    'memo'                      => $memo,
                 );
 
                 //do the insert
@@ -312,7 +460,7 @@ class WP_Analytify_Simple{
 
         //title
         echo '<h2>'.$title.' Vehicle</h2>';
-        echo '<table class="form-table"><tbody><form action="' . esc_url( admin_url(  ($edit >= 1 ) ? 'admin.php?page=add-vehicle&edit=' .$vehicle->id  : 'admin.php?page=add-vehicle'  ) ) . '" method="post">';
+        echo '<table class="form-table"><tbody><form action="' . esc_url( admin_url(  ($edit >= 1 ) ? 'admin.php?page=add-vehicle&edit=' .$vehicle->id  : 'admin.php?page=add-vehicle'  ) ) . '" method="POST">';
 
 
         //action
@@ -357,23 +505,23 @@ class WP_Analytify_Simple{
         echo '<input name="color" type="color" id="color" value="'.$vehicle->color.'" '.$disabled.' >';
         echo '</fieldset></td></tr>';
 
-        //Odometer At Last Serviced
-        echo '<tr><th scope="row">Odometer At Last Serviced</th>';
-        echo '<td> <fieldset><legend class="screen-reader-text"><span>Odometer At Last Serviced </span></legend><label for="odometer_at_last_serviced">';
-        echo ($view >= 1) ? $vehicle->odometer_at_last_serviced : '<input name="odometer_at_last_serviced" type="number"  id="odometer_at_last_serviced" value="'.$vehicle->odometer_at_last_serviced.'"></label>';
-        echo '</fieldset></td></tr>';
-
-        //Last Serviced
-        echo '<tr><th scope="row">Last Serviced</th>';
-        echo '<td> <fieldset><legend class="screen-reader-text"><span>Last Serviced </span></legend><label for="last_serviced">';
-        echo ($view >= 1) ? $vehicle->last_serviced : '<input name="last_serviced" type="date" id="last_serviced" value="'.$vehicle->last_serviced.'"></label>';
-        echo '</fieldset></td></tr>';
-
-        //memo
-        echo '<tr><th scope="row">Memo</th>';
-        echo '<td> <fieldset><legend class="screen-reader-text"><span>Memo </span></legend><label for="memo">';
-        echo '<textarea name="memo" style="width: 350px; height: 250px;" id="memo" '.$disabled.'>'.$vehicle->memo.'</textarea></label>';
-        echo '</fieldset></td></tr>';
+//        //Odometer At Last Serviced
+//        echo '<tr><th scope="row">Odometer At Last Serviced</th>';
+//        echo '<td> <fieldset><legend class="screen-reader-text"><span>Odometer At Last Serviced </span></legend><label for="odometer_at_last_serviced">';
+//        echo ($view >= 1) ? $vehicle->odometer_at_last_serviced : '<input name="odometer_at_last_serviced" type="number"  id="odometer_at_last_serviced" value="'.$vehicle->odometer_at_last_serviced.'"></label>';
+//        echo '</fieldset></td></tr>';
+//
+//        //Last Serviced
+//        echo '<tr><th scope="row">Last Serviced</th>';
+//        echo '<td> <fieldset><legend class="screen-reader-text"><span>Last Serviced </span></legend><label for="last_serviced">';
+//        echo ($view >= 1) ? $vehicle->last_serviced : '<input name="last_serviced" type="date" id="last_serviced" value="'.$vehicle->last_serviced.'"></label>';
+//        echo '</fieldset></td></tr>';
+//
+//        //memo
+//        echo '<tr><th scope="row">Memo</th>';
+//        echo '<td> <fieldset><legend class="screen-reader-text"><span>Memo </span></legend><label for="memo">';
+//        echo '<textarea name="memo" style="width: 350px; height: 250px;" id="memo" '.$disabled.'>'.$vehicle->memo.'</textarea></label>';
+//        echo '</fieldset></td></tr>';
 
         //delete record only in view mode
         if ($view >= 1) {
@@ -384,10 +532,18 @@ class WP_Analytify_Simple{
         } else {
             //required label
             echo '<b style="color:darkred">*</b> required';
-            echo '</form></tbody></table>';
         }
 
+        //close table
+        echo '</form></tbody></table>';
 
+
+        //show post services when viewing
+        if ($view >= 1) {
+            //display chart for vehicle services
+            //receives vehicle id as a perimeter
+            self::services($vehicle->id);
+        }
 
 
 
