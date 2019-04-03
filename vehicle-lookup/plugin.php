@@ -322,6 +322,9 @@ class WP_Analytify_Simple{
         //the table to be inserted into
         $table_name = $wpdb->prefix . 'vehicle';
 
+        //reference delete.js
+        wp_enqueue_script('delete', plugin_dir_url(__FILE__).'js/'.'delete.js');
+
         //services table
         $table_services = $wpdb->prefix . 'services';
 
@@ -439,7 +442,6 @@ class WP_Analytify_Simple{
 
             } else {
 
-
                 echo '<div>';
                 echo '<p><b style="color:darkred">Oh On! Something went wrong?</b></p>';
                 echo '</div>';
@@ -527,7 +529,19 @@ class WP_Analytify_Simple{
         if ($view >= 1) {
             echo '<tr><th scope="row">Delete Record</th>';
             echo '<td> <fieldset><legend class="screen-reader-text"><span>Delete Record</span></legend><label for="delete">';
-            echo '<a style="color: darkred;" href="' . esc_url(admin_url('admin.php?page=add-vehicle&deleted='.$vehicle->id )) . ' ">Delete</a>';
+
+            echo '
+            <div id="deleteButton">
+                <a style="color: darkred;" onclick="deletePrompt(\'deleteButton\', \'deleteOptions\')">Delete</a>
+            </div>
+            ';
+
+            echo '<div id="deleteOptions" style="display: none">  
+            <a  style="color: #36D696;" onclick="deletePrompt(\'deleteButton\', \'deleteOptions\')">No</a>         
+            <a  style="color: darkred; padding-left: 50px;" href="' . esc_url(admin_url('admin.php?page=add-vehicle&deleted='.$vehicle->id )) . ' ">Yes, delete it!</a>
+            </div>';
+
+
             echo '</fieldset></td></tr>';
         } else {
             //required label
