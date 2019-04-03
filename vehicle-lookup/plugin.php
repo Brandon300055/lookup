@@ -91,6 +91,12 @@ class WP_Vehicle_Lookup{
         return 0;
     }
 
+    protected function message($color, $message)
+    {
+        echo '<div>';
+        echo '<p><b style="color:'.$color.'">'.$message.'</b></p>';
+        echo '</div>';
+    }
 
     /**
      * this method generates the dropdown of all the services offered
@@ -204,6 +210,32 @@ class WP_Vehicle_Lookup{
         die();
     }
 
+
+    /**
+     * handles the dropping of service records
+     */
+    private function drop()
+    {
+        global $wpdb; //access wordpress instance
+
+        $drop = strip_tags(sanitize_text_field( $_GET["drop"] ));
+
+        //drop service
+        if ( is_numeric( $drop ) ) {
+            //preform the delete
+            $wpdb->delete(
+                $wpdb->table_services,
+                ['id' => $drop],
+                ['%d']
+            );
+
+            //success message
+            self::message("#36D696", "Nifty! You Just dropped a service record");
+        }
+
+    }
+
+
     /**
      * @param $vehicleID
      *
@@ -244,7 +276,19 @@ class WP_Vehicle_Lookup{
         //loop over all the past services for this vehicle and create a table
         foreach ($services as $service) {
             echo "<tr>";
-            echo "<td><a>Edit</a> | <a style='color: darkred'>Drop</a></td>";
+
+            echo '
+            <td><div id="dropButton'.$service->id.'">
+             <a>Edit</a> |
+                <a style="color: darkred;" onclick="deletePrompt(\'dropButton'.$service->id.'\', \'dropOptions'.$service->id.'\')">Drop</a>
+            </div>
+            ';
+
+            echo '<div id="dropOptions'.$service->id.'" style="display: none"> 
+                <a  style="color: #36D696;" href="' . esc_url(admin_url('admin.php?page=add-vehicle&view='.$vehicleID.'&drop='.$service->id )) . ' ">Yes drop it</a>
+               | <a style="color: darkred; " onclick="deletePrompt(\'dropButton'.$service->id.'\', \'dropOptions'.$service->id.'\')">No Keep it</a>         
+            </div></td>';
+
             echo "<td>".$service->service."</td>";
             echo "<td>".$service->last_serviced."</td>";
             echo "<td>".$service->odometer_at_last_serviced."</td>";
@@ -289,16 +333,12 @@ class WP_Vehicle_Lookup{
 
 
             //success message
-            echo '<div>';
-            echo '<p><b style="color:#36D696">Nifty! You Just added a service record</b></p>';
-            echo '</div>';
-
+            self::message("#36D696", "Nifty! You Just added a service record");
 
         } else {
 
-//            echo '<div>';
-//            echo '<p><b style="color:darkred">Oh On! Something went wrong?</b></p>';
-//            echo '</div>';
+            //fail message
+//            self::message("darkred", "Oh On! Something went wrong?");
 
         }
 
@@ -345,9 +385,7 @@ class WP_Vehicle_Lookup{
 
                     $cancelOrDone = "Done";
 
-                    echo '<div>';
-                    echo '<p><b style="color:#36D696">Nifty! You Just update a vehicle</b></p>';
-                    echo '</div>';
+                    self::message("#36D696", "Nifty! You Just update a vehicle");
 
                 } else {
                     $wpdb->insert($wpdb->table_vehicle, $data, $format);
@@ -356,17 +394,13 @@ class WP_Vehicle_Lookup{
                     $wpdb->insert_id;
 
                     //success message
-                    echo '<div>';
-                    echo '<p><b style="color:#36D696">Nifty! You Just added a '. $make .' ' . $model . ', would you like to add another?</b></p>';
-                    echo '</div>';
+                    self::message("#36D696", 'Nifty! You Just added a '. $make .' ' . $model . ', would you like to add another?');
                 }
 
             } else {
 
-                //failure massage
-                echo '<div>';
-                echo '<p><b style="color:darkred">Oh On! Something went wrong?</b></p>';
-                echo '</div>';
+                //fail message
+                self::message("darkred", "Oh On! Something went wrong?");
 
             }
         }
@@ -419,17 +453,20 @@ class WP_Vehicle_Lookup{
         }
 
 
-        //save service
+        //save/drop service
         if ($view >= 1) {
 
+            //get data for saving service
             $id              = strip_tags(sanitize_text_field( $_GET["view"] ));
             $service             = strip_tags(sanitize_text_field( $_POST["service"] ));
             $last_serviced             = strip_tags(sanitize_text_field( $_POST["last_serviced"] ));
             $odometer             = strip_tags(sanitize_text_field( $_POST["odometer_at_last_serviced"] ));
             $memo             = strip_tags(sanitize_text_field( $_POST["memo"] ));
 
+            //drop service
+            self::drop();
 
-            //save services
+            //save service
             self::save_service($id, $last_serviced, $odometer, $memo, $service);
         }
 
