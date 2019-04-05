@@ -136,6 +136,36 @@ class WP_Vehicle_Lookup{
 
     }
 
+    /**
+     * @param $vehicleID
+     * @param null $editService
+     *
+     * this method provides a form for both adding and updating service records
+     */
+    protected function add_service_form($vehicleID, $editService = null, $service = null)
+    {
+        //add or update
+        if ($editService != null) {
+            $buttonTitle = "Update";
+            $action = esc_url(admin_url('admin.php?page=add-vehicle&view='.$vehicleID.'&update_service='.$editService ));
+        } else {
+            $buttonTitle = "Add";
+            $action = esc_url( admin_url("admin.php?page=add-vehicle&view=".$vehicleID) );
+        }
+
+        //create form for a service
+        echo "<tr><form action='". $action . "' method='POST'>";
+        echo "<td><input type='submit' name='add-service' value='". $buttonTitle . "' style=\"background-color:#36D696; color:#ffffff;\"></td>";
+
+        //have a dropdown list for services
+        self::services_dropdown();
+
+        echo "<td><input type='date' name='last_serviced' value='".$service->last_serviced."' required=''></td>";
+        echo "<td><input type='number' min='0' name='odometer_at_last_serviced' value='".$service->odometer_at_last_serviced."' required=''></td>";
+        echo "<td><textarea name='memo'>".$service->memo."</textarea></td>";
+        echo "</form></tr>";
+    }
+
 
     /*
      * Actions perform on loading of menu pages
@@ -261,48 +291,54 @@ class WP_Vehicle_Lookup{
       <th>Memo</th>
       </tr></thead><tbody>';
 
-        //create form for a service
-        echo "<tr><form action='". esc_url( admin_url("admin.php?page=add-vehicle&view=".$vehicleID) ) ."' method='POST'>";
-        echo "<td><input type='submit' name='add-service' value='Add' style=\"background-color:#36D696; color:#ffffff;\"></td>";
 
-        //have a dropdown list for services
-        self::services_dropdown();
+        self::add_service_form($vehicleID);
 
-        echo "<td><input type='date' name='last_serviced' value='' required=''></td>";
-        echo "<td><input type='number' min='0' name='odometer_at_last_serviced' value='' required=''></td>";
-        echo "<td><textarea name='memo' value=''></textarea></td>";
-        echo "</form></tr>";
+        $editService = $edit  = strip_tags(sanitize_text_field( $_GET["edit_service"] ));;
 
         //loop over all the past services for this vehicle and create a table
         foreach ($services as $service) {
-            echo "<tr>";
 
-            echo '
+            if ($service->id === $editService)
+            {
+                //count
+                self::add_service_form($vehicleID, $editService, $service);
+
+            } else {
+
+                echo "<tr>";
+
+                echo '
             <td><div id="dropButton'.$service->id.'">
-             <a>Edit</a> |
+             <a href="' . esc_url(admin_url('admin.php?page=add-vehicle&view='.$vehicleID.'&edit_service='.$service->id )) . '">Edit</a> |
                 <a style="color: darkred;" onclick="deletePrompt(\'dropButton'.$service->id.'\', \'dropOptions'.$service->id.'\')">Drop</a>
             </div>
             ';
 
-            echo '<div id="dropOptions'.$service->id.'" style="display: none"> 
-                <a  style="color: #36D696;" href="' . esc_url(admin_url('admin.php?page=add-vehicle&view='.$vehicleID.'&drop='.$service->id )) . ' ">Yes drop it</a>
-               | <a style="color: darkred; " onclick="deletePrompt(\'dropButton'.$service->id.'\', \'dropOptions'.$service->id.'\')">No Keep it</a>         
+                echo '<div id="dropOptions'.$service->id.'" style="display: none"> 
+                <a style="color: darkred;" href="' . esc_url(admin_url('admin.php?page=add-vehicle&view='.$vehicleID.'&drop='.$service->id )) . '">Yes drop it</a>
+               | <a style="color: #36D696;" onclick="deletePrompt(\'dropButton'.$service->id.'\', \'dropOptions'.$service->id.'\')">No Keep it</a>         
             </div></td>';
 
-            echo "<td>".$service->service."</td>";
-            echo "<td>".$service->last_serviced."</td>";
-            echo "<td>".$service->odometer_at_last_serviced."</td>";
-            echo "<td>".$service->memo."</td>";
-            echo "</tr>";
+                echo "<td>".$service->service."</td>";
+                echo "<td>".$service->last_serviced."</td>";
+                echo "<td>".$service->odometer_at_last_serviced."</td>";
+                echo "<td>".$service->memo."</td>";
+                echo "</tr>";
+
+            }
 
         }
+
+
+
 
         echo "</tbody></table>";
 
     }
 
 
-    protected function save_service($vehicle_id, $last_serviced, $odometer, $memo, $service)
+    protected function save_service($vehicle_id, $last_serviced, $odometer, $memo, $service, $updateService = null)
     {
         global $wpdb; //access wordpress instance
 
@@ -325,15 +361,31 @@ class WP_Vehicle_Lookup{
             //test the printed data
 //            print_r($data);
 
-            //insert into db
-            $wpdb->insert($wpdb->table_services, $data, $format);
+            $updateService = strip_tags(sanitize_text_field( $_GET["update_service"] ));
 
-            //add id
-            $wpdb->insert_id;
+            //update or insert
+            if ($updateService == null) {
+                //insert
+
+                //insert into db
+                $wpdb->insert($wpdb->table_services, $data, $format);
+
+                //add id
+                $wpdb->insert_id;
+
+                //success message
+                self::message("#36D696", "Nifty! You Just added a service record.");
+
+            } else {
+                //update
+                $wpdb->update($wpdb->table_services, $data, array('id' => $updateService));
+
+                //success message
+                self::message("#36D696", "Nifty! You Just update a service record.");
+
+            }
 
 
-            //success message
-            self::message("#36D696", "Nifty! You Just added a service record");
 
         } else {
 
@@ -385,7 +437,7 @@ class WP_Vehicle_Lookup{
 
                     $cancelOrDone = "Done";
 
-                    self::message("#36D696", "Nifty! You Just update a vehicle");
+                    self::message("#36D696", "Nifty! You Just update a vehicle.");
 
                 } else {
                     $wpdb->insert($wpdb->table_vehicle, $data, $format);
