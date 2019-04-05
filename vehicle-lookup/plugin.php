@@ -287,7 +287,7 @@ class WP_Vehicle_Lookup{
       <th>Action</th>
       <th>Service</th>
       <th>Last Serviced</th>
-      <th>Hours</th>
+      <th>Hours / Odometer</th>
       <th>Memo</th>
       </tr></thead><tbody>';
 
